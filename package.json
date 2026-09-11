@@ -1,0 +1,7 @@
+{
+  "name": "ngwg-feature",
+  "version": "0.1.0",
+  "description": "Must-load Ngwg plugin: theme-facing helpers (archives, tags, dates, excerpts) via ngwg-helper-v1",
+  "type": "module",
+  "module": "src/index.ts"
+}
