@@ -98,7 +98,6 @@ export function postsInCategory(site: any, category: string): any[] {
 }
 
 const helper = {
-  protocol: "ngwg-helper-v1" as const,
   name: "feature",
   version: "0.1.0",
 
@@ -126,4 +125,4 @@ const helper = {
   },
 };
 
-export default { plugins: [helper] };
+export default { helpers: [helper] };
