@@ -3,6 +3,8 @@
 //   ngwg-helper-v1 : helper functions exposed to themes as `h.<name>` inside
 //                    templates ({{@ formatDate post.date "YYYY"}}), plus an
 //                    optional buildData() hook that enriches site.data.
+//                    Includes the i18n helper t: {{@ t "key" args… }} renders
+//                    the theme's translation for the selected language.
 //
 // Helpers make common theme tasks trivial: building archive structures,
 // tag/category listings, date formatting and excerpts. Complex logic belongs
@@ -97,9 +99,35 @@ export function postsInCategory(site: any, category: string): any[] {
   return site?.categories?.[category] ?? [];
 }
 
+/**
+ * Translate a theme i18n string: `{{@ t "archive.subtitle" site.posts.length }}`.
+ * The template deployer binds `this` to the page's root render context,
+ * which carries the theme string table as `t` for the selected language.
+ * `{0}`, `{1}`, … in the string are replaced by the extra arguments. Dot
+ * paths walk nested YAML maps (`{{@ t "nav.home" }}`). A missing key renders
+ * as the key itself so gaps are visible instead of silent.
+ */
+export function t(this: any, key: any, ...args: any[]): string {
+  if (typeof key !== "string" || !key) return "";
+  let cur = this?.t;
+  for (const seg of key.split(".")) {
+    if (cur === null || typeof cur !== "object") {
+      cur = undefined;
+      break;
+    }
+    cur = cur[seg];
+  }
+  if (cur === undefined || cur === null) return key;
+  let s = typeof cur === "string" ? cur : String(cur);
+  args.forEach((a, i) => {
+    s = s.split(`{${i}}`).join(a === undefined || a === null ? "" : String(a));
+  });
+  return s;
+}
+
 const helper = {
   name: "feature",
-  version: "0.1.0",
+  version: "0.2.0",
 
   helpers: {
     formatDate,
@@ -112,6 +140,7 @@ const helper = {
     slugify,
     postsWithTag,
     postsInCategory,
+    t,
   },
 
   /** Enrich site.data during pipeline step 7. */
