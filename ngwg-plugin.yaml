@@ -1,5 +1,5 @@
 name: feature
-version: 0.1.0
+version: 0.2.0
 entry: src/index.ts
 description: "Must-load plugin: theme-facing helpers — archives, tag lists, category trees, date formatting, excerpts"
 protocols:
