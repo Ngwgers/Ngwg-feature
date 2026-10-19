@@ -1,6 +1,7 @@
 name: feature
 version: 0.2.0
 entry: src/index.ts
-description: "Must-load plugin: theme-facing helpers — archives, tag lists, category trees, date formatting, excerpts"
+description: "Must-load plugin: theme-facing helpers — archives, tag lists, category trees, date formatting, excerpts — plus copy_files output copying"
 protocols:
   - ngwg-helper-v1
+  - ngwg-option-v1

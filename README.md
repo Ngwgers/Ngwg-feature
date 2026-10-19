@@ -19,6 +19,22 @@
 
 示例调用：`{{@ formatDate page.meta.date "YYYY-MM-DD" }}`。
 
+## copy_files
+
+构建完成后，将工作目录（运行 `ngwg` 的目录）下声明的文件或目录原样复制到产出目录（`public/`），相对路径保持不变。符号链接会被跟随（文件按内容复制、目录递归复制），循环链接会跳过。
+
+```yaml
+plugins:
+  feature:
+    option:
+      copy_files:
+        - CNAME
+        - static          # → public/static/**
+        - assets/logo.png # → public/assets/logo.png
+```
+
+缺失的条目或断开的符号链接只会产生警告，不会中断构建；指向工作目录之外或产出目录本身的条目会被跳过。
+
 ## 许可证 / License
 
 本项目基于 [GNU General Public License v3.0 (GPL-3.0)](LICENSE) 发布。

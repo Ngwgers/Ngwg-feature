@@ -10,6 +10,9 @@
 // tag/category listings, date formatting and excerpts. Complex logic belongs
 // in plugins like this one — themes stay declarative.
 
+import { copyFile, mkdir, readdir, realpath, stat } from "node:fs/promises";
+import * as path from "node:path";
+
 export function formatDate(date: any, format = "YYYY-MM-DD"): string {
   if (!date) return "";
   const d = date instanceof Date ? date : new Date(date);
@@ -125,6 +128,110 @@ export function t(this: any, key: any, ...args: any[]): string {
   return s;
 }
 
+/** True when `child` is `parent` itself or lives below it (lexical check). */
+function isWithin(parent: string, child: string): boolean {
+  const rel = path.relative(parent, child);
+  return rel === "" || (rel !== ".." && !rel.startsWith(".." + path.sep) && !path.isAbsolute(rel));
+}
+
+export interface CopyDeclaredFilesOptions {
+  /** output directory (the site's public/) */
+  publicDir: string;
+  /** base directory relative entries are resolved against (default: process.cwd()) */
+  cwd?: string;
+  log?: { warn(msg: string): void };
+}
+
+/**
+ * Copy `copy_files` entries (files or directories, relative to the working
+ * directory) into the output directory, preserving their relative path.
+ * Symbolic links are followed: linked files are copied by value and linked
+ * directories are traversed recursively, with an ancestor check that stops
+ * link cycles. Missing entries and broken links only produce a warning;
+ * the output directory itself is never copied into itself.
+ *
+ * Returns the number of regular files written.
+ */
+export async function copyDeclaredFiles(entries: unknown, opts: CopyDeclaredFilesOptions): Promise<number> {
+  const warn = (msg: string) => opts.log?.warn(msg);
+  if (entries === undefined || entries === null) return 0;
+  if (!Array.isArray(entries)) {
+    warn(`copy_files must be an array of paths, got ${typeof entries}; ignored`);
+    return 0;
+  }
+
+  const baseDir = path.resolve(opts.cwd ?? process.cwd());
+  const publicDir = path.resolve(opts.publicDir);
+  const publicReal = await realpath(publicDir).catch(() => publicDir);
+  let copied = 0;
+
+  const copyEntry = async (src: string, dest: string, ancestors: Set<string>): Promise<number> => {
+    // never walk into the output directory: `copy_files: ["."]` must not
+    // recursively copy public/ into itself
+    if (isWithin(publicDir, src)) return 0;
+    let info;
+    try {
+      info = await stat(src);
+    } catch (e) {
+      warn(`copy_files: cannot read ${src} (${(e as NodeJS.ErrnoException).code ?? (e as Error).message}); skipped`);
+      return 0;
+    }
+
+    const real = await realpath(src).catch(() => src);
+    if (isWithin(publicReal, real) || isWithin(publicDir, real)) return 0;
+
+    if (info.isDirectory()) {
+      if (ancestors.has(real)) {
+        warn(`copy_files: symlink cycle at ${src}; skipped`);
+        return 0;
+      }
+      ancestors.add(real);
+      try {
+        await mkdir(dest, { recursive: true });
+        let count = 0;
+        for (const name of await readdir(src)) {
+          count += await copyEntry(path.join(src, name), path.join(dest, name), ancestors);
+        }
+        return count;
+      } finally {
+        ancestors.delete(real);
+      }
+    }
+    if (info.isFile()) {
+      await mkdir(path.dirname(dest), { recursive: true });
+      await copyFile(src, dest);
+      return 1;
+    }
+    warn(`copy_files: ${src} is neither a file nor a directory; skipped`);
+    return 0;
+  };
+
+  for (const entry of entries) {
+    if (typeof entry !== "string" || !entry.trim()) {
+      warn(`copy_files: expected a path string, got ${JSON.stringify(entry)}; skipped`);
+      continue;
+    }
+    const src = path.resolve(baseDir, entry);
+    let rel: string;
+    if (path.isAbsolute(entry)) {
+      rel = path.basename(path.normalize(entry));
+    } else {
+      rel = path.normalize(entry);
+      if (rel === "." || rel === ".." || rel.startsWith(".." + path.sep)) {
+        warn(`copy_files: ${entry} points outside the working directory; skipped`);
+        continue;
+      }
+    }
+    const dest = path.resolve(publicDir, rel);
+    if (dest === publicDir || !isWithin(publicDir, dest)) {
+      warn(`copy_files: ${entry} would write outside the output directory; skipped`);
+      continue;
+    }
+    copied += await copyEntry(src, dest, new Set());
+  }
+  return copied;
+}
+
 const helper = {
   name: "feature",
   version: "0.2.0",
@@ -152,6 +259,24 @@ const helper = {
       totalWords: posts.reduce((sum, p) => sum + String(p.body ?? "").split(/\s+/).filter(Boolean).length, 0),
     };
   },
+
+  /**
+   * Copy the files/directories declared in `plugins.feature.option.copy_files`
+   * into public/ once the deployers are done (afterDeploy hook).
+   */
+  async afterDeploy(ctx: any, env: any) {
+    const count = await copyDeclaredFiles(ctx?.options?.self?.copy_files, {
+      publicDir: env.publicDir,
+      cwd: process.cwd(),
+      log: ctx.log,
+    });
+    if (count > 0) ctx.log.info(`copied ${count} file(s) from copy_files`);
+  },
 };
 
-export default { helpers: [helper] };
+const option = {
+  name: "feature-options",
+  version: "0.2.0",
+};
+
+export default { helpers: [helper], options: [option] };
