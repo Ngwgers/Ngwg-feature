@@ -56,9 +56,14 @@ export function categoryTree(categories: Record<string, any[]>): { name: string;
   return tagCloud(categories);
 }
 
-/** Plain-text excerpt of a post (strips tags, truncates at word boundary). */
+/**
+ * Plain-text excerpt of a post (strips tags, truncates at word boundary).
+ * Prefers the author's `<!-- more -->` intro (`excerptHtml`), which is also
+ * what listing cards show, so a banner description repeats that passage instead
+ * of the opening of the body.
+ */
 export function excerpt(post: any, length = 120): string {
-  const src = String(post?.html ?? post?.body ?? post?.excerpt ?? "");
+  const src = String(post?.excerptHtml ?? post?.html ?? post?.body ?? post?.excerpt ?? "");
   const text = src
     .replace(/<[^>]+>/g, " ")
     .replace(/&[a-z]+;/gi, " ")
