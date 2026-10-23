@@ -12,6 +12,8 @@
 | `archives(posts)` | 按年分组的归档结构 |
 | `tagCloud(tags)` / `categoryTree(cats)` | 带计数的标签/分类列表（按数量排序） |
 | `excerpt(post, len)` | 纯文本摘要（剥标签、截断） |
+| `wordCount(post)` | 字数（CJK 按字、拉丁按词，剥代码与链接目标；读原始 `body`，长文分段后仍统计全篇） |
+| `readingTime(post)` | 预计阅读分钟数（CJK 400 字/分、拉丁 220 词/分，最少 1） |
 | `limit(arr, n)` | 取前 N 项 |
 | `slugify(s)` | URL 安全 slug（与 Core 生成的目录名一致） |
 | `postsWithTag(site, tag)` / `postsInCategory(site, cat)` | 按标签/分类取文章 |

@@ -68,6 +68,35 @@ export function excerpt(post: any, length = 120): string {
   return text.slice(0, text.lastIndexOf(" ", length) > 0 ? text.lastIndexOf(" ", length) : length) + "…";
 }
 
+/**
+ * CJK characters and latin words of a post, from its raw markdown: fenced and
+ * inline code, raw HTML and link targets are dropped so markup is not counted.
+ * `body` and not `html` on purpose — the deployer shortens `html` to the first
+ * segment of a long post before the layout renders.
+ */
+function textUnits(post: any): { cjk: number; latin: number } {
+  const text = String(post?.body ?? post ?? "")
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`[^`]*`/g, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\]\([^)\s]*\)/g, "]");
+  const cjk = (text.match(/[\u3400-\u9fff]/g) || []).length;
+  const latin = (text.replace(/[\u3400-\u9fff]/g, " ").match(/[A-Za-z0-9]+/g) || []).length;
+  return { cjk, latin };
+}
+
+/** Word count of a post: every CJK character plus every latin word. */
+export function wordCount(post: any): number {
+  const { cjk, latin } = textUnits(post);
+  return cjk + latin;
+}
+
+/** Reading time in minutes (CJK 400/min, latin 220/min), never below 1. */
+export function readingTime(post: any): number {
+  const { cjk, latin } = textUnits(post);
+  return Math.max(1, Math.round(cjk / 400 + latin / 220));
+}
+
 /** First N items of an array. */
 export function limit(arr: any[], n = 5): any[] {
   return (arr ?? []).slice(0, n);
@@ -242,6 +271,8 @@ const helper = {
     tagCloud,
     categoryTree,
     excerpt,
+    wordCount,
+    readingTime,
     limit,
     size,
     slugify,
