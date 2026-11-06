@@ -15,6 +15,7 @@
 | `wordCount(post)` | 字数（CJK 按字、拉丁按词，剥代码与链接目标；读原始 `body`，长文分段后仍统计全篇） |
 | `readingTime(post)` | 预计阅读分钟数（CJK 400 字/分、拉丁 220 词/分，最少 1） |
 | `limit(arr, n)` | 取前 N 项 |
+| `size(v)` | 数组长度或对象键数（`null`/`undefined` 为 0；常用作 `{{#if @ size … }}` 守卫） |
 | `slugify(s)` | URL 安全 slug（与 Core 生成的目录名一致） |
 | `postsWithTag(site, tag)` / `postsInCategory(site, cat)` | 按标签/分类取文章 |
 | `t(key, args…)` | i18n 翻译：`{{@ t "archive.subtitle" site.posts.length }}`，`{0}` 被参数替换（需 i18n 主题，见 Ngwg-docs/theme-development.md） |
@@ -35,7 +36,7 @@ plugins:
         - assets/logo.png # → public/assets/logo.png
 ```
 
-缺失的条目或断开的符号链接只会产生警告，不会中断构建；指向工作目录之外或产出目录本身的条目会被跳过。
+缺失的条目或断开的符号链接只会产生警告，不会中断构建；指向产出目录本身的条目会被跳过。相对路径中的 `..` 若越出工作目录会被跳过；绝对路径会被接受，并以文件/目录名（basename）复制到 `public/` 下。
 
 ## 许可证 / License
 

@@ -287,12 +287,11 @@ const helper = {
   },
 
   /** Enrich site.data during pipeline step 7. */
-  buildData(_ctx: any, site: any, posts: any[]) {
-    const withExcerpt = posts.slice(0, 5).map((p) => ({ ...p, _excerpt: excerpt(p, 160) }));
+  buildData(_ctx: any, _site: any, posts: any[]) {
     return {
-      recent: withExcerpt.map((p) => p.meta?.slug ?? p.meta?.title),
+      recent: posts.slice(0, 5).map((p) => p.meta?.slug ?? p.meta?.title),
       totalPosts: posts.length,
-      totalWords: posts.reduce((sum, p) => sum + String(p.body ?? "").split(/\s+/).filter(Boolean).length, 0),
+      totalWords: posts.reduce((sum, p) => sum + wordCount(p), 0),
     };
   },
 
